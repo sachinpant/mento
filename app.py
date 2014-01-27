@@ -20,4 +20,5 @@ def internal_server_error(error):
     return 'Invalid call.'
 
 if __name__ == '__main__':
+    app.config.from_pyfile('config.cfg')
     app.run(port=1337, host='0.0.0.0')
