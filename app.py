@@ -23,7 +23,13 @@ def invalid_call():
 
 @app.route('/manage/info')
 def show_info():
-    return 'Mento configuration:<br /><br />' + "Music folder: " + musicfolder + "<br />Tracks in library: " + str(music_count) # TODO music_count should be retrieved from a file
+    if os.path.exists('info.mento'):
+        info_file = open('info.mento')
+        for config in info_file:
+            if 'music_count=' in config:
+                music_count = config.split('=')[1]        
+        return 'Mento configuration:<br /><br />' + "Music folder: " + musicfolder + "<br />Tracks in library: " + str(music_count) # TODO music_count should be retrieved from a file
+    return 'No information file found. Make sure you ran a library refresh at least once.'
 
 @app.route('/manage/refresh')
 def refresh_library():
@@ -57,7 +63,12 @@ def refresh_library():
     paths_file = open('paths.json', 'w+')
     paths_file.write(str(json.dumps(music_paths, indent = 4)))
     paths_file.close()
-    return 'Library refreshed, scanned ' + str(music_count) + ' tracks.' # TODO save this to a file
+    if os.path.exists('info.mento'):
+        os.remove('info.mento')
+    info_file = open('info.mento', 'w+')
+    info_file.write('music_count=' + str(music_count))
+    info_file.close()
+    return 'Library refreshed, scanned ' + str(music_count) + ' tracks.'
 
 @app.route('/library')
 def show_library():
@@ -82,5 +93,10 @@ if __name__ == '__main__':
     app.config.from_pyfile('config.cfg')
     print 'Reading configuration file...'
     musicfolder = app.config['MUSICFOLDER']
+    if os.path.exists('info.mento'):
+        info_file = open('info.mento')
+        for config in info_file:
+            if 'music_count=' in config:
+                music_count = config.split('=')[1]
     print 'Starting Mento...'
     app.run(port=1337, host='0.0.0.0', debug=True)
