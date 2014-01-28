@@ -1,1 +1,1 @@
-musicfolder='/the/path/to/your/music/library'
+MUSICFOLDER = '/the/path/to/your/music/library'
