@@ -52,6 +52,13 @@ def refresh_library():
                 data = {}
                 data['id'] = track_hash_string
                 data['file'] = os.path.abspath(os.path.join(root, file))
+                if 'APIC:' in track:
+                    data['artwork'] = 'embedded'
+                if not 'APIC:' in track:
+                    if os.path.exists(os.path.join(root, 'cover.jpg')):
+                        data['artwork'] = 'external'
+                    if not os.path.exists(os.path.join(root, 'cover.jpg')): # TODO this could be an else
+                        data['artwork'] = 'none'
                 music_paths.append(data)
     if os.path.exists('library.json'):
         os.remove('library.json')
