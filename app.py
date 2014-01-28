@@ -1,6 +1,8 @@
 #! engine/bin/python2.7
 
 import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 import os
 import json
 import trans
@@ -12,6 +14,7 @@ app = Flask(__name__)
 # global variables
 music_count = 0
 music_library = []
+music_paths = []
 
 # main app
 @app.route('/')
@@ -37,13 +40,23 @@ def refresh_library():
                 info['title'] = str(track.tags['TIT2']).decode('utf-8').encode('trans')	
                 track_hash = hashlib.md5()
                 track_hash.update(info['artist'] + info['album'] + info['title'])
-                info['id'] = str(track_hash.hexdigest())
+                track_hash_string = str(track_hash.hexdigest())
+                info['id'] = track_hash_string
                 music_library.append(info)
+                data = {}
+                data['id'] = track_hash_string
+                data['file'] = os.path.abspath(os.path.join(root, file))
+                music_paths.append(data)
     if os.path.exists('library.json'):
         os.remove('library.json')
     library_file = open('library.json', 'w+')
     library_file.write(str(json.dumps(music_library, indent = 4)))
     library_file.close()
+    if os.path.exists('paths.json'):
+        os.remove('paths.json')
+    paths_file = open('paths.json', 'w+')
+    paths_file.write(str(json.dumps(music_paths, indent = 4)))
+    paths_file.close()
     return 'Library refreshed, scanned ' + str(music_count) + ' tracks.' # TODO save this to a file
 
 @app.route('/library')
@@ -55,7 +68,7 @@ def show_library():
 # TODO remove this stub routing
 @app.route('/test')
 def test_file():
-    return send_file('/home/pi/hdd/file.mp3')
+    return send_file('/home/pi/hdd/sw.mp3'.decode('unicode-escape'))
 
 @app.errorhandler(404)
 def page_not_found(error):
