@@ -57,18 +57,19 @@ def refresh_library():
                 if not 'APIC:' in track:
                     if os.path.exists(os.path.join(root, 'cover.jpg')):
                         data['artwork'] = 'external'
-                    if not os.path.exists(os.path.join(root, 'cover.jpg')): # TODO this could be an else
+                        data['artwork_file'] = os.path.abspath(os.path.join(root, 'cover.jpg'))
+                    if not os.path.exists(os.path.join(root, 'cover.jpg')):
                         data['artwork'] = 'none'
                 music_paths.append(data)
     if os.path.exists('library.json'):
         os.remove('library.json')
     library_file = open('library.json', 'w+')
-    library_file.write(str(json.dumps(music_library, indent = 4)))
+    library_file.write(str(json.dumps(music_library, indent = 4)).split('[', 1)[1].rsplit(']', 1)[0])
     library_file.close()
     if os.path.exists('paths.json'):
         os.remove('paths.json')
     paths_file = open('paths.json', 'w+')
-    paths_file.write(str(json.dumps(music_paths, indent = 4)))
+    paths_file.write(str(json.dumps(music_paths, indent = 4)).split('[', 1)[1].rsplit(']', 1)[0])
     paths_file.close()
     if os.path.exists('info.mento'):
         os.remove('info.mento')
