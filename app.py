@@ -3,18 +3,16 @@
 import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')
+import shutil
 import os
-import json
 import trans
 import hashlib
 from mutagen import File
-from flask import Flask, request, send_file, jsonify
+from flask import Flask, request, send_file, jsonify, Response
 app = Flask(__name__)
 
 # global variables
 music_count = 0
-music_library = []
-music_paths = []
 
 # main app
 @app.route('/')
@@ -35,42 +33,48 @@ def show_info():
 def refresh_library():
     print 'Refreshing library...'
     music_count = 0
+    if os.path.exists('library.temp'):
+        os.remove('library.temp')
+    temp_library_file = open('library.temp', 'w+')
+    if os.path.exists('paths.temp'):
+        os.remove('paths.temp')
+    temp_paths_file = open('paths.temp', 'w+')
     for root, dirs, files in os.walk(musicfolder):
         for file in files:
             if file.endswith('.mp3'):
                 music_count += 1
                 track = File(os.path.abspath(os.path.join(root, file)))
-                info = {}
-                info['artist'] = str(track.tags['TPE1']).decode('utf-8').encode('trans')
-                info['album'] = str(track.tags['TALB']).decode('utf-8').encode('trans')
-                info['title'] = str(track.tags['TIT2']).decode('utf-8').encode('trans')	
+                track_artist = str(track.tags['TPE1']).decode('utf-8').encode('trans')
+                track_album = str(track.tags['TALB']).decode('utf-8').encode('trans')
+                track_title = str(track.tags['TIT2']).decode('utf-8').encode('trans')	
                 track_hash = hashlib.md5()
-                track_hash.update(info['artist'] + info['album'] + info['title'])
+                track_hash.update(track_artist + track_album + track_title)
                 track_hash_string = str(track_hash.hexdigest())
-                info['id'] = track_hash_string
-                music_library.append(info)
-                data = {}
-                data['id'] = track_hash_string
-                data['file'] = os.path.abspath(os.path.join(root, file))
+                track_id = track_hash_string
+                temp_library_file.write(track_id + '__break__' + track_artist + '__break__' + track_album + '__break__' + track_title + '__new__')
+                data_id = track_hash_string
+                data_file = os.path.abspath(os.path.join(root, file))
+                data_artwork = 'none'
+                data_artwork_file = 'none'
                 if 'APIC:' in track:
-                    data['artwork'] = 'embedded'
+                    data_artwork = 'embedded'
+                    data_artwork_file = 'unrequired'
                 if not 'APIC:' in track:
                     if os.path.exists(os.path.join(root, 'cover.jpg')):
-                        data['artwork'] = 'external'
-                        data['artwork_file'] = os.path.abspath(os.path.join(root, 'cover.jpg'))
+                        data_artwork = 'external'
+                        data_artwork_file = os.path.abspath(os.path.join(root, 'cover.jpg'))
                     if not os.path.exists(os.path.join(root, 'cover.jpg')):
-                        data['artwork'] = 'none'
-                music_paths.append(data)
-    if os.path.exists('library.json'):
-        os.remove('library.json')
-    library_file = open('library.json', 'w+')
-    library_file.write(str(json.dumps(music_library, indent = 4)).split('[', 1)[1].rsplit(']', 1)[0])
-    library_file.close()
-    if os.path.exists('paths.json'):
-        os.remove('paths.json')
-    paths_file = open('paths.json', 'w+')
-    paths_file.write(str(json.dumps(music_paths, indent = 4)).split('[', 1)[1].rsplit(']', 1)[0])
-    paths_file.close()
+                        data_artwork = 'none'
+                        data_artwork_file = 'none'
+                temp_paths_file.write(data_id + '__break__' + data_file + '__break__' + data_artwork + '__break__' + data_artwork_file + '__new__')
+    temp_library_file.close()
+    temp_paths_file.close()
+    if os.path.exists('library.mento'):
+        os.remove('library.mento')
+    shutil.copy2('library.temp', 'library.mento')
+    if os.path.exists('paths.mento'):
+        os.remove('paths.mento')
+    shutil.copy2('paths.temp', 'paths.mento')
     if os.path.exists('info.mento'):
         os.remove('info.mento')
     info_file = open('info.mento', 'w+')
@@ -78,16 +82,27 @@ def refresh_library():
     info_file.close()
     return 'Library refreshed, scanned ' + str(music_count) + ' tracks.'
 
-@app.route('/library')
+@app.route('/user/library')
 def show_library():
-    if os.path.exists('library.json'):
-        return send_file('library.json')
+    if os.path.exists('library.mento'):
+        return open('library.mento').read()
     return 'No library file found.'
 
-# TODO remove this stub routing
-@app.route('/test')
-def test_file():
-    return send_file('/home/pi/hdd/sw.mp3'.decode('unicode-escape'))
+@app.route('/user/artwork/<string:id>', methods = ['GET'])
+def show_artwork(id):
+    paths_file = open('paths.mento', 'r').read().split('__new__')
+    for track in paths_file:
+        if id in track:
+            print 'Unimplemented function.' # TODO return album art
+    return 'Unknown ID.'
+    # TODO close the file again?
+
+@app.route('/user/play/<string:id>', methods = ['GET'])
+def show_track(id):
+    paths_file = open('paths.mento', 'r').read().split('__new__')
+    for track in paths_file:
+        if id in track:
+            return send_file(track.split('__break__')[1].decode('utf-8'))
 
 @app.errorhandler(404)
 def page_not_found(error):
@@ -107,4 +122,4 @@ if __name__ == '__main__':
             if 'music_count=' in config:
                 music_count = config.split('=')[1]
     print 'Starting Mento...'
-    app.run(port=1337, host='0.0.0.0', debug=True)
+    app.run(port=1337, host='0.0.0.0', debug=False)
