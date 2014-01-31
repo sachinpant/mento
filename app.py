@@ -47,26 +47,17 @@ def refresh_library():
                 track_artist = str(track.tags['TPE1']).decode('utf-8').encode('trans')
                 track_album = str(track.tags['TALB']).decode('utf-8').encode('trans')
                 track_title = str(track.tags['TIT2']).decode('utf-8').encode('trans')	
+                track_number = str(track.tags['TRCK']).decode('utf-8').encode('trans')
                 track_hash = hashlib.md5()
                 track_hash.update(track_artist + track_album + track_title)
                 track_hash_string = str(track_hash.hexdigest())
                 track_id = track_hash_string
-                temp_library_file.write(track_id + '__break__' + track_artist + '__break__' + track_album + '__break__' + track_title + '__new__')
+                temp_library_file.write(track_id + '__break__' + track_artist + '__break__' + track_album + '__break__' + track_title + '__break__' + track_number + '__new__')
                 data_id = track_hash_string
                 data_file = os.path.abspath(os.path.join(root, file))
                 data_artwork = 'none'
                 data_artwork_file = 'none'
-                if 'APIC:' in track:
-                    data_artwork = 'embedded'
-                    data_artwork_file = 'unrequired'
-                if not 'APIC:' in track:
-                    if os.path.exists(os.path.join(root, 'cover.jpg')):
-                        data_artwork = 'external'
-                        data_artwork_file = os.path.abspath(os.path.join(root, 'cover.jpg'))
-                    if not os.path.exists(os.path.join(root, 'cover.jpg')):
-                        data_artwork = 'none'
-                        data_artwork_file = 'none'
-                temp_paths_file.write(data_id + '__break__' + data_file + '__break__' + data_artwork + '__break__' + data_artwork_file + '__new__')
+                temp_paths_file.write(data_id + '__break__' + data_file + '__new__')
     temp_library_file.close()
     temp_paths_file.close()
     if os.path.exists('library.mento'):
@@ -88,21 +79,13 @@ def show_library():
         return open('library.mento').read()
     return 'No library file found.'
 
-@app.route('/user/artwork/<string:id>', methods = ['GET'])
-def show_artwork(id):
-    paths_file = open('paths.mento', 'r').read().split('__new__')
-    for track in paths_file:
-        if id in track:
-            print 'Unimplemented function.' # TODO return album art
-    return 'Unknown ID.'
-    # TODO close the file again?
-
 @app.route('/user/play/<string:id>', methods = ['GET'])
-def show_track(id):
+def play_track(id):
     paths_file = open('paths.mento', 'r').read().split('__new__')
     for track in paths_file:
         if id in track:
             return send_file(track.split('__break__')[1].decode('utf-8'))
+    return 'Unknown ID.'
 
 @app.errorhandler(404)
 def page_not_found(error):
@@ -122,4 +105,4 @@ if __name__ == '__main__':
             if 'music_count=' in config:
                 music_count = config.split('=')[1]
     print 'Starting Mento...'
-    app.run(port=1337, host='0.0.0.0', debug=False)
+    app.run(port=1337, host='0.0.0.0', debug=True)
