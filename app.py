@@ -7,6 +7,7 @@ import shutil
 import os
 import trans
 import hashlib
+import mutagen
 from mutagen import File
 from flask import Flask, request, send_file, jsonify, Response
 app = Flask(__name__)
@@ -47,11 +48,12 @@ def refresh_library():
                 track_artist = str(track.tags['TPE1']).decode('utf-8').encode('trans')
                 track_album = str(track.tags['TALB']).decode('utf-8').encode('trans')
                 track_title = str(track.tags['TIT2']).decode('utf-8').encode('trans')	
+                track_number = str(track.tags['TRCK']).decode('utf-8').encode('trans')
                 track_hash = hashlib.md5()
                 track_hash.update(track_artist + track_album + track_title)
                 track_hash_string = str(track_hash.hexdigest())
                 track_id = track_hash_string
-                temp_library_file.write(track_id + '__break__' + track_artist + '__break__' + track_album + '__break__' + track_title + '__new__')
+                temp_library_file.write(track_id + '__break__' + track_artist + '__break__' + track_album + '__break__' + track_title + '__break__' + track_number + '__new__')
                 data_id = track_hash_string
                 data_file = os.path.abspath(os.path.join(root, file))
                 data_artwork = 'none'
@@ -119,4 +121,4 @@ if __name__ == '__main__':
             if 'music_count=' in config:
                 music_count = config.split('=')[1]
     print 'Starting Mento...'
-    app.run(port=1337, host='0.0.0.0', debug=False)
+    app.run(port=1337, host='0.0.0.0', debug=True)
