@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <link href='https://fonts.googleapis.com/css?family=Chivo:900' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <title>Mento by icx9</title>
+  </head>
+
+  <body>
+    <div id="container">
+      <div class="inner">
+
+        <header>
+          <h1>Mento</h1>
+          <h2>Mento</h2>
+        </header>
+
+        <section id="downloads" class="clearfix">
+          <a href="https://github.com/icx9/mento/zipball/master" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/icx9/mento/tarball/master" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/icx9/mento" id="view-on-github" class="button"><span>View on GitHub</span></a>
+        </section>
+
+        <hr>
+
+        <section id="main_content">
+          <p>Mento is a Python-based application, which offers an open protocol to stream and transfer MP3 files over the internet. Metadata is read using Mutagen, and presented to clients through a REST API which is written using Flask. </p>
+
+<p>Mento is lightweight, open-source, and the data is transferred using plain HTML: use the REST API to get the ID of a track, use the same API to play the track with that ID, and Mento will return the MP3 file. Or use the API to get the artwork: it is all possible with Mento. If you think that you need more metadata from an audio file, just fork the project, make sure to notify users that you are using a version of the API which uses a different setup for returning the library data, and you are good to go. Mento uses a simple method of transferring data, which can easily be incorporated in apps for the CLI, mobile devices, rich GUI applications, or a PHP-based web interface: the possibilities are endless.</p>
+
+<h2>
+<a name="notes" class="anchor" href="#notes"><span class="octicon octicon-link"></span></a>Notes</h2>
+
+<p>For now, Mento does not use any authentication. This means that you should not open up Mento to a port which is open for everyone, as one can easily create a lot of load on your server by constantly refreshing your library. </p>
+
+<p>Mento itself does not contain any music. Do not use it for illegal purposes: Mento is written for personal use in your own house. Although you could use it over the internet, it is not recommended, due to the lack of security measures (that will be implemented as soon as possible).</p>
+
+<p>Mento will stop when you close the terminal window where Mento is running. Since a Python application can run in the background on a different way depending on your OS, you will have to look up how it is done on your particular distribution.</p>
+
+<h2>
+<a name="install" class="anchor" href="#install"><span class="octicon octicon-link"></span></a>Install</h2>
+
+<p>To use Mento, first clone it from the repository:</p>
+
+<p><code>git clone https://github.com/icx9/mento.git</code></p>
+
+<p>Go to the directory of Mento:</p>
+
+<p><code>cd mento</code></p>
+
+<p>Make sure Python 2.7 and pip are installed, and set up the virtual environment:</p>
+
+<p><code>virtualenv --no-site-packages engine</code></p>
+
+<p>Enter the virtual environment:</p>
+
+<p><code>. engine/bin/activate</code></p>
+
+<p>Install the packages:</p>
+
+<p><code>pip install -r requirements.txt</code></p>
+
+<p>Next up, copy 'config.cfg.example' to 'config.cfg'. Open up 'config.cfg' in your favourite text editor, and set the path to your music directory. </p>
+
+<p>Start the application:</p>
+
+<p><code>./app.py</code></p>
+
+<p>And Mento is running!</p>
+
+<h2>
+<a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>When Mento is running, open up a browser and go to 'IP OF YOUR SERVER:1337'. You should get 'Invalid API Call'. Now, you can use 'IP OF YOUR SERVER:1337/' to control Mento. </p>
+
+<h2>
+<a name="api" class="anchor" href="#api"><span class="octicon octicon-link"></span></a>API</h2>
+
+<h3>
+<a name="managerefresh" class="anchor" href="#managerefresh"><span class="octicon octicon-link"></span></a>/manage/refresh</h3>
+
+<p>Starts a scan of your library to generate 'info.mento', 'library.mento' and 'paths.mento'. Depending on the size of your music library, this can take quite some time! Chances are that if you have tens of gigabytes of music, your browser could theoretically give a time-out. If this occurs, we probably have to write a command line interface to start the library scan. <strong>Mento is unusable before you did this atleast once!</strong></p>
+
+<h3>
+<a name="manageinfo" class="anchor" href="#manageinfo"><span class="octicon octicon-link"></span></a>/manage/info</h3>
+
+<p>Returns some basic information about the music library.</p>
+
+<h3>
+<a name="userlibrary" class="anchor" href="#userlibrary"><span class="octicon octicon-link"></span></a>/user/library</h3>
+
+<p>Returns a file which contains all the data of the music. The file may look unordered, but it is actually quite simple: split the file on the delimiter '<strong>new</strong>'. Then, split the result again on the delimiter '<strong>break</strong>'. The first variable is the ID, the second variable is the artist, the third is the album, the fourth is the title, and the fifth one is the track number. If for example, I want to return a list of all tracks in Python, I simply get the file '/user/library', and save the data to a variable called 'library_result'. It is just a matter of:</p>
+
+<p><code>the_tracks = library_result.split('__break__')</code></p>
+
+<p><code>for each track in the_tracks:</code></p>
+
+<p><code>the_id = track.split('__break__')[0]</code></p>
+
+<p><code>the_artist = track.split('__break__')[1]</code></p>
+
+<p><code>the_album = track.split('__break__')[2]</code></p>
+
+<p><code>the_title = track.split('__break__')[3]</code></p>
+
+<p><code>the_number = track.split('__break__')[4]</code></p>
+
+<h3>
+<a name="userplayid" class="anchor" href="#userplayid"><span class="octicon octicon-link"></span></a>/user/play/ID</h3>
+
+<p>Replace 'ID' with an ID you got from '/user/library'. It will return an MP3 file of that track. Play it using a media player, save it using wget, do whatever you want.</p>
+
+<h3>
+<a name="userartworkid" class="anchor" href="#userartworkid"><span class="octicon octicon-link"></span></a>/user/artwork/ID</h3>
+
+<p>Replace 'ID' with an ID you got from '/user/library'. It will return a JPG file of the album art. You will only get a JPG if you saved a file called 'cover.jpg' in the same directory as the MP3 file. </p>
+        </section>
+
+        <footer>
+          Mento is maintained by <a href="https://github.com/icx9">icx9</a><br>
+          This page was generated by <a href="http://pages.github.com">GitHub Pages</a>. Tactile theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.
+        </footer>
+
+        
+      </div>
+    </div>
+  </body>
+</html>
