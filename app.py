@@ -10,6 +10,7 @@ import hashlib
 import mutagen
 from mutagen import File
 from flask import Flask, request, send_file, jsonify, Response
+from flask.ext.sqlalchemy import SQLAlchemy
 app = Flask(__name__)
 
 # global variables
@@ -115,10 +116,12 @@ if __name__ == '__main__':
     app.config.from_pyfile('config.cfg')
     print 'Reading configuration file...'
     musicfolder = app.config['MUSICFOLDER']
-    if os.path.exists('info.mento'):
+    if os.path.exists('info.mento'): # TODO save it in the database
         info_file = open('info.mento')
         for config in info_file:
             if 'music_count=' in config:
                 music_count = config.split('=')[1]
     print 'Starting Mento...'
+    database = SQLAlchemy(app)
+    database.create_all()
     app.run(port=1337, host='0.0.0.0', debug=True)

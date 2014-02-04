@@ -1,1 +1,2 @@
 MUSICFOLDER = '/the/path/to/your/music/library'
+SQLALCHEMY_DATABASE_URI = 'sqlite:///library.db'
