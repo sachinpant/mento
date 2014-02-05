@@ -122,6 +122,4 @@ if __name__ == '__main__':
             if 'music_count=' in config:
                 music_count = config.split('=')[1]
     print 'Starting Mento...'
-    database = SQLAlchemy(app)
-    database.create_all()
     app.run(port=1337, host='0.0.0.0', debug=True)
