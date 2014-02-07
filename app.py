@@ -13,6 +13,11 @@ from flask import Flask, request, send_file, jsonify, Response
 from flask.ext.sqlalchemy import SQLAlchemy
 app = Flask(__name__)
 
+# set up the config and database
+app.config.from_object('config')
+db = SQLAlchemy(app)
+import models
+
 # global variables
 music_count = 0
 
@@ -113,7 +118,6 @@ def internal_server_error(error):
     return 'Invalid call.'
 
 if __name__ == '__main__':
-    app.config.from_pyfile('config.cfg')
     print 'Reading configuration file...'
     musicfolder = app.config['MUSICFOLDER']
     if os.path.exists('info.mento'): # TODO save it in the database
