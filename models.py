@@ -48,26 +48,6 @@ class Albums(db.Model):
     def __repr__(self):
         return '<Album %r>' % (self.name)
 
-class Tracks(db.Model):
-    __tablename__ = 'tracks'
-
-    id = db.Column(db.Integer, index = True, primary_key = True)
-    title = db.Column(db.String(80))
-    album = db.Column(db.Integer, db.ForeignKey(albums.c.id))
-    artist = db.Column(db.Integer, db.ForeignKey(artists.c.id))
-    year = db.Column(db.Integer)
-    genre = db.Column(db.String(80))
-    format = db.Column(db.String(32))
-    length = db.Column(db.Integer)
-    date_added = db.Column(db.DateTime)
-    date_played = db.Column(db.DateTime)
-    last_played = db.Column(db.Integer)
-    external_artwork = db.Column(db.Boolean)
-    artwork = db.Column(db.Integer, db.ForeignKey(artwork.c.id))
-
-    def __repr__(self):
-        return '<Song %r>' % (self.title)
-
 class Artwork(db.Model):
     __tablename__ = 'artwork'
 
@@ -76,6 +56,26 @@ class Artwork(db.Model):
 
     def __repr__(self):
         return '<Artwork %r>' % (self.path)
+
+class Tracks(db.Model):
+    __tablename__ = 'tracks'
+
+    id = db.Column(db.Integer, index = True, primary_key = True)
+    title = db.Column(db.String(80))
+    album = db.Column(db.Integer, db.ForeignKey(Albums.id))
+    artist = db.Column(db.Integer, db.ForeignKey(Artists.id))
+    year = db.Column(db.Integer)
+    genre = db.Column(db.String(80))
+    format = db.Column(db.String(32))
+    length = db.Column(db.Integer)
+    date_added = db.Column(db.DateTime)
+    date_played = db.Column(db.DateTime)
+    last_played = db.Column(db.Integer)
+    external_artwork = db.Column(db.Boolean)
+    artwork = db.Column(db.Integer, db.ForeignKey(Artwork.id))
+
+    def __repr__(self):
+        return '<Song %r>' % (self.title)
 
 class Playlist(db.Model):
     __tablename__ = 'playlist'
@@ -92,6 +92,6 @@ class Playlist(db.Model):
 class Playlist_data(db.Model):
     __tablename__ = 'playlists_data'
 
-    playlist_id = db.Column(db.ForeignKey(playlists.c.id), primary_key = True, index = True)
+    playlist_id = db.Column(db.ForeignKey(Playlist.id), primary_key = True, index = True)
     object_id = db.Column(db.Integer)
     object_type = db.Column(db.Enum(u'track', u'album'))
