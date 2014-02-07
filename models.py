@@ -53,8 +53,8 @@ class Tracks(db.Model):
 
     id = db.Column(db.Integer, index = True, primary_key = True)
     title = db.Column(db.String(80))
-    album = db.Column(db.Integer, ForeignKey(albums.c.id))
-    artist = db.Column(db.Integer, ForeignKey(artists.c.id))
+    album = db.Column(db.Integer, db.ForeignKey(albums.c.id))
+    artist = db.Column(db.Integer, db.ForeignKey(artists.c.id))
     year = db.Column(db.Integer)
     genre = db.Column(db.String(80))
     format = db.Column(db.String(32))
@@ -63,7 +63,7 @@ class Tracks(db.Model):
     date_played = db.Column(db.DateTime)
     last_played = db.Column(db.Integer)
     external_artwork = db.Column(db.Boolean)
-    artwork = db.Column(db.Integer, ForeignKey(artwork.c.id))
+    artwork = db.Column(db.Integer, db.ForeignKey(artwork.c.id))
 
     def __repr__(self):
         return '<Song %r>' % (self.title)
