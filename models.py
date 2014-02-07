@@ -48,8 +48,8 @@ class Albums(db.Model):
     def __repr__(self):
         return '<Album %r>' % (self.name)
 
-class Songs(db.Model):
-    __tablename__ = 'songs'
+class Tracks(db.Model):
+    __tablename__ = 'tracks'
 
     id = db.Column(db.Integer, index = True, primary_key = True)
     title = db.Column(db.String(80))
@@ -78,7 +78,7 @@ class Artwork(db.Model):
         return '<Artwork %r>' % (self.path)
 
 class Playlist(db.Model):
-    __tablename__ = 'playlists'
+    __tablename__ = 'playlist'
 
     id = db.Column(db.Integer, primary_key = True)
     name = db.Column(db.String(255), index = True)
@@ -94,4 +94,4 @@ class Playlist_data(db.Model):
 
     playlist_id = db.Column(db.ForeignKey(playlists.c.id), primary_key = True, index = True)
     object_id = db.Column(db.Integer)
-    object_type = db.Column(db.Enum(u'song', u'album'))
+    object_type = db.Column(db.Enum(u'track', u'album'))
