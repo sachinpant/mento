@@ -71,6 +71,7 @@ class Tracks(db.Model):
     date_added = db.Column(db.DateTime)
     date_played = db.Column(db.DateTime)
     last_played = db.Column(db.Integer)
+    file_location = db.Column(db.String(4096))
     external_artwork = db.Column(db.Boolean)
     artwork = db.Column(db.Integer, db.ForeignKey(Artwork.id))
 
