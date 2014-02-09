@@ -68,15 +68,17 @@ class Tracks(db.Model):
     genre = db.Column(db.String(80))
     format = db.Column(db.String(32))
     length = db.Column(db.Integer)
-    date_added = db.Column(db.DateTime)
-    date_played = db.Column(db.DateTime)
-    last_played = db.Column(db.Integer)
+    date_added = db.Column(db.String(32))
+    file_location = db.Column(db.String(4096))
     external_artwork = db.Column(db.Boolean)
     artwork = db.Column(db.Integer, db.ForeignKey(Artwork.id))
 
     def __repr__(self):
         return '<Song %r>' % (self.title)
 
+    def __init__(self, id, title, album, artist, year, genre, format, length, date_added, file_location, external_artwork, artwork):
+        print 'id' + "\t" + title + "\t" + album + "\t" + artist + "\t" + length + "\t" + file_location
+ 
 class Playlist(db.Model):
     __tablename__ = 'playlist'
 

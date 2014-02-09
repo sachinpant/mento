@@ -6,8 +6,10 @@ sys.setdefaultencoding('utf-8')
 import shutil
 import os
 import trans
+import time
 import hashlib
 import mutagen
+import models
 from mutagen import File
 from flask import Flask, request, send_file, jsonify, Response
 from flask.ext.sqlalchemy import SQLAlchemy
@@ -16,7 +18,6 @@ app = Flask(__name__)
 # set up the config and database 
 app.config.from_object('config')
 db = SQLAlchemy(app)
-import models
 
 # global variables
 music_count = 0
@@ -28,62 +29,75 @@ def invalid_call():
 
 @app.route('/manage/info')
 def show_info():
-    if os.path.exists('info.mento'):
-        info_file = open('info.mento')
-        for config in info_file:
-            if 'music_count=' in config:
-                music_count = config.split('=')[1]        
-        return 'Mento configuration:<br /><br />' + "Music folder: " + musicfolder + "<br />Tracks in library: " + str(music_count) # TODO music_count should be retrieved from a file
-    return 'No information file found. Make sure you ran a library refresh at least once.'
+    #TODO this information has to be shown from the database
+    print 'Stubbed.'
 
 @app.route('/manage/refresh')
 def refresh_library():
-    print 'Refreshing library...'
     music_count = 0
-    if os.path.exists('library.temp'):
-        os.remove('library.temp')
-    temp_library_file = open('library.temp', 'w+')
-    if os.path.exists('paths.temp'):
-        os.remove('paths.temp')
-    temp_paths_file = open('paths.temp', 'w+')
     for root, dirs, files in os.walk(musicfolder):
         for file in files:
             if file.endswith('.mp3'):
                 music_count += 1
+
                 track = File(os.path.abspath(os.path.join(root, file)))
-                track_artist = str(track.tags['TPE1']).decode('utf-8').encode('trans')
-                track_album = str(track.tags['TALB']).decode('utf-8').encode('trans')
-                track_title = str(track.tags['TIT2']).decode('utf-8').encode('trans')	
-                track_number = str(track.tags['TRCK']).decode('utf-8').encode('trans')
+
+                try:
+                    track_artist = str(track.tags['TPE1']).decode('utf-8').encode('trans')
+                except:
+                    track_artist = 'Unknown'
+                try:
+                    track_album = str(track.tags['TALB']).decode('utf-8').encode('trans')
+                except:
+                    track_album = 'Unknown'
+                try:
+                    track_title = str(track.tags['TIT2']).decode('utf-8').encode('trans')
+                except:
+                    track_title = str(file.strip(".mp3"))
+                try:
+                    track_number = str(track.tags['TRCK']).decode('utf-8').encode('trans')
+                except:
+                    track_number = 'Unknown'
+                try:
+                    track_year = str(track.tags['TDOR']).decode('utf-8').encode('trans')
+                except:
+                    track_year = 'Unknown'
+                try:
+                    track_genre = 'Undefined' # TODO there is no ID3 tag for genre
+                except:
+                    track_genre = 'Unknown'
+                track_format = str(track).split(".")[-1]
+                try:
+                    track_length = str(MP3(track).info.length)
+                except:
+                    track_length  = 'Unknown'
+                date_added = time.strftime("%H:%M:%S")
+                file_location = os.path.abspath(os.path.join(root, file))
+
                 track_hash = hashlib.md5()
                 track_hash.update(track_artist + track_album + track_title)
-                track_hash_string = str(track_hash.hexdigest())
+                track_hash_string = int(track_hash.hexdigest(), 16)
                 track_id = track_hash_string
-                temp_library_file.write(track_id + '__break__' + track_artist + '__break__' + track_album + '__break__' + track_title + '__break__' + track_number + '__new__')
-                data_id = track_hash_string
-                data_file = os.path.abspath(os.path.join(root, file))
+
                 data_artwork = 'none'
                 data_artwork_file = 'none'
                 if os.path.exists(os.path.join(root, 'cover.jpg')):
-                    data_artwork = 'external'
-                    data_artwork_file = os.path.abspath(os.path.join(root, 'cover.jpg'))
+                    artwork = 'external'
+                    external_artwork = os.path.abspath(os.path.join(root, 'cover.jpg'))
                 if not os.path.exists(os.path.join(root, 'cover.jpg')):
-                        data_artwork = 'none'
-                        data_artwork_file = 'none'
-                temp_paths_file.write(data_id + '__break__' + data_file + '__break__' + data_artwork + '__break__' + data_artwork_file + '__new__')
-    temp_library_file.close()
-    temp_paths_file.close()
-    if os.path.exists('library.mento'):
-        os.remove('library.mento')
-    shutil.copy2('library.temp', 'library.mento')
-    if os.path.exists('paths.mento'):
-        os.remove('paths.mento')
-    shutil.copy2('paths.temp', 'paths.mento')
-    if os.path.exists('info.mento'):
-        os.remove('info.mento')
-    info_file = open('info.mento', 'w+')
-    info_file.write('music_count=' + str(music_count))
-    info_file.close()
+                        try:
+                            artwork = 'external'
+                            artwork_data = track.tags['APIC:'].data
+                            with open('artwork/' + track_id + '.jpg', 'wb') as img:
+                                img.write(artwork_data)
+                            external_artwork = 'artwork/' + track_id + '.jpg'
+                        except:
+                            artwork = 'none'
+                            external_artwork = 'none'
+
+                tracks_db = models.Tracks(track_id, track_title, track_album, track_artist, track_year, track_genre, track_format, track_length, date_added, file_location, external_artwork, artwork) 
+                db.session.add(tracks_db)
+    db.session.commit()
     return 'Library refreshed, scanned ' + str(music_count) + ' tracks.'
 
 @app.route('/user/library')
@@ -120,10 +134,7 @@ def internal_server_error(error):
 if __name__ == '__main__':
     print 'Reading configuration file...'
     musicfolder = app.config['MUSICFOLDER']
-    if os.path.exists('info.mento'): # TODO save it in the database
-        info_file = open('info.mento')
-        for config in info_file:
-            if 'music_count=' in config:
-                music_count = config.split('=')[1]
+    if not os.path.exists('artwork'):
+        os.makedirs('artwork')
     print 'Starting Mento...'
     app.run(port=1337, host='0.0.0.0', debug=True)
