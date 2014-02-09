@@ -9,13 +9,16 @@ import trans
 import time
 import hashlib
 import mutagen
+import mimetypes
+import datetime
 import models
 from mutagen import File
+from mutagen.mp3 import MP3
 from flask import Flask, request, send_file, jsonify, Response
 from flask.ext.sqlalchemy import SQLAlchemy
 app = Flask(__name__)
 
-# set up the config and database 
+# set up the config and database
 app.config.from_object('config')
 db = SQLAlchemy(app)
 
@@ -35,68 +38,73 @@ def show_info():
 @app.route('/manage/refresh')
 def refresh_library():
     music_count = 0
+    mp3_tags = {'artist':'TPE1', 'album':'TALB', 'title':'TIT2', 'number':'TRCK', 'year':'TDOR', 'genre':'TCON'}
+    cover_names = ['folder', 'cover', 'album', 'front']
     for root, dirs, files in os.walk(musicfolder):
         for file in files:
             if file.endswith('.mp3'):
-                music_count += 1
+                tags = mp3_tags
+                track_length = int(MP3(os.path.abspath(os.path.join(root, file))).info.length)
+                track_format = 'mp3'
+            else:
+                continue
+            music_count += 1
+            track = File(os.path.abspath(os.path.join(root, file)))
 
-                track = File(os.path.abspath(os.path.join(root, file)))
+            if tags['artist'] in track:
+                track_artist = track[tags['artist']][0]
+            else:
+                track_artist = 'Unknown'
+            if tags['album'] in track:
+                track_album = track[tags['album']][0]
+            else:
+                track_album = 'Unknown'
+            if tags['title'] in track:
+                track_title = track.tags[tags['title']][0]
+            else:
+                track_title = str(file.strip(".mp3"))
+            if tags['number'] in track:
+                track_number = track.tags[tags['number']][0]
+            else:
+                track_number = 'Unknown'
+            if tags['year'] in track:
+                track_year = track.tags[tags['year']][0]
+            else:
+                track_year = 'Unknown'
+            if tags['genre'] in track:
+                track_genre = track.tags[tags['genre']][0]
+            else:
+                track_genre = 'Unknown'
+            track_format = str(track).split(".")[-1]
+            date_added = datetime.datetime.today()
+            file_location = os.path.abspath(os.path.join(root, file))
 
-                try:
-                    track_artist = str(track.tags['TPE1']).decode('utf-8').encode('trans')
-                except:
-                    track_artist = 'Unknown'
-                try:
-                    track_album = str(track.tags['TALB']).decode('utf-8').encode('trans')
-                except:
-                    track_album = 'Unknown'
-                try:
-                    track_title = str(track.tags['TIT2']).decode('utf-8').encode('trans')
-                except:
-                    track_title = str(file.strip(".mp3"))
-                try:
-                    track_number = str(track.tags['TRCK']).decode('utf-8').encode('trans')
-                except:
-                    track_number = 'Unknown'
-                try:
-                    track_year = str(track.tags['TDOR']).decode('utf-8').encode('trans')
-                except:
-                    track_year = 'Unknown'
-                try:
-                    track_genre = 'Undefined' # TODO there is no ID3 tag for genre
-                except:
-                    track_genre = 'Unknown'
-                track_format = str(track).split(".")[-1]
-                try:
-                    track_length = str(MP3(track).info.length)
-                except:
-                    track_length  = 'Unknown'
-                date_added = time.strftime("%H:%M:%S")
-                file_location = os.path.abspath(os.path.join(root, file))
+            track_hash = hashlib.md5()
+            track_hash.update(track_artist + track_album + track_title)
+            track_hash_string = int(track_hash.hexdigest(), 16)
+            track_id = track_hash_string
 
-                track_hash = hashlib.md5()
-                track_hash.update(track_artist + track_album + track_title)
-                track_hash_string = int(track_hash.hexdigest(), 16)
-                track_id = track_hash_string
-
-                data_artwork = 'none'
-                data_artwork_file = 'none'
-                if os.path.exists(os.path.join(root, 'cover.jpg')):
+            data_artwork = 'none'
+            data_artwork_file = 'none'
+            for cover_name in cover_names:
+                for extension in ['jpg', 'jpe', 'jpeg', 'png', 'bmp']:
+                    if os.path.exists(os.path.join(root, cover_name+'.'+extension)):
+                        artwork = 'external'
+                        external_artwork = os.path.abspath(os.path.join(root, cover_name+'.'+extension))
+                        data_artwork = "found"
+            if data_artwork != "found":
+                try:
                     artwork = 'external'
-                    external_artwork = os.path.abspath(os.path.join(root, 'cover.jpg'))
-                if not os.path.exists(os.path.join(root, 'cover.jpg')):
-                        try:
-                            artwork = 'external'
-                            artwork_data = track.tags['APIC:'].data
-                            with open('artwork/' + track_id + '.jpg', 'wb') as img:
-                                img.write(artwork_data)
-                            external_artwork = 'artwork/' + track_id + '.jpg'
-                        except:
-                            artwork = 'none'
-                            external_artwork = 'none'
+                    artwork_data = track.tags['APIC:'].data
+                    with open('artwork/' + str(track_id) + mimetypes.guess_extension(track.tags['APIC:'].mime, strict=False), 'wb') as img:
+                        img.write(artwork_data)
+                    external_artwork = 'artwork/' + str(track_id) + mimetypes.guess_extension(track.tags['APIC:'].mime, strict=False)
+                except KeyError:
+                    artwork = 'none'
+                    external_artwork = False
 
-                tracks_db = models.Tracks(track_id, track_title, track_album, track_artist, track_year, track_genre, track_format, track_length, date_added, file_location, external_artwork, artwork) 
-                db.session.add(tracks_db)
+            tracks_db = models.Tracks(track_id, track_title, track_album, track_artist, track_year, track_genre, track_format, track_length, date_added, file_location, external_artwork, artwork)
+            db.session.add(tracks_db)
     db.session.commit()
     return 'Library refreshed, scanned ' + str(music_count) + ' tracks.'
 
