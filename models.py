@@ -77,8 +77,8 @@ class Tracks(db.Model):
         return '<Song %r>' % (self.title)
 
     def __init__(self, id, title, album, artist, year, genre, format, length, date_added, file_location, external_artwork, artwork):
-        print 'id' + "\t" + title + "\t" + album + "\t" + artist + "\t" + length + "\t" + file_location
- 
+        print 'id' + "\t" + title + "\t" + album + "\t" + artist + "\t" + str(length) + "\t" + file_location
+
 class Playlist(db.Model):
     __tablename__ = 'playlist'
 
