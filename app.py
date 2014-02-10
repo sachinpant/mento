@@ -35,7 +35,7 @@ from mutagen.mp3 import MP3
 from flask import Flask, request, send_file, jsonify, Response
 from flask.ext.sqlalchemy import SQLAlchemy
 from helper import finders, cache
-from library import update
+from library import update, remove
 app = Flask(__name__)
 
 # set up the config and database
@@ -56,6 +56,9 @@ def show_info():
 def refresh_library():
     return update.full_rescan()
 
+@app.route('/manage/remove_missing')
+def remove_missing():
+    return remove.delete_missing()
 
 @app.route('/user/library')
 def show_library():

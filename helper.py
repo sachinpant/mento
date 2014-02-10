@@ -45,5 +45,19 @@ class Cache:
             print "cache is good!"
             return currunt_cache
 
+class SwitchCase:
+    def upper(self, a):
+        return a.upper()
+
+    def lower(self, a):
+        return a.lower()
+
+    def title(self, a):
+        return a.title()
+
+    def to_str(self, a):
+        return a
+
+switchcase = SwitchCase()
 cache = Cache()
 finders = Finders()
