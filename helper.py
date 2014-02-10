@@ -22,10 +22,12 @@
 
 from flask import Flask, request, send_file, jsonify, Response
 from flask.ext.sqlalchemy import SQLAlchemy
+import time
 
 app = Flask(__name__)
 # set up the config and database
 app.config.from_object('config')
+musicfolder = app.config['MUSICFOLDER']
 db = SQLAlchemy(app)
 
 class Finders:
@@ -35,4 +37,13 @@ class Finders:
         else:
             return u"Unkown"
 
+class Cache:
+    def tracks(self, currunt_cache):
+        if currunt_cache[0] - time.time() > 86400:
+            return [time.time()]
+        else:
+            print "cache is good!"
+            return currunt_cache
+
+cache = Cache()
 finders = Finders()
