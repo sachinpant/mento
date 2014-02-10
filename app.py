@@ -23,20 +23,26 @@
 import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')
-import shutil
+#import shutil
 import os
-import trans
-import time
+#import trans
+#import time
 import hashlib
 import mutagen
 import mimetypes
 import datetime
+import time
 import models
+#from models import Tracks
+#reload(models)
 from mutagen import File
 from mutagen.mp3 import MP3
 from flask import Flask, request, send_file, jsonify, Response
 from flask.ext.sqlalchemy import SQLAlchemy
+from helper import finders
 app = Flask(__name__)
+
+
 
 # set up the config and database
 app.config.from_object('config')
@@ -58,73 +64,79 @@ def show_info():
 @app.route('/manage/refresh')
 def refresh_library():
     music_count = 0
+    db.create_all()
     mp3_tags = {'artist':'TPE1', 'album':'TALB', 'title':'TIT2', 'number':'TRCK', 'year':'TDOR', 'genre':'TCON'}
     cover_names = ['folder', 'cover', 'album', 'front']
     for root, dirs, files in os.walk(musicfolder):
         for file in files:
+            start = time.time()
             if file.endswith('.mp3'):
                 tags = mp3_tags
-                track_length = int(MP3(os.path.abspath(os.path.join(root, file))).info.length)
-                track_format = 'mp3'
+                try:
+                    track_length = int(MP3(os.path.abspath(os.path.join(root, file))).info.length)
+                except EOFError:
+                    continue
+                track_format = u'mp3'
             else:
                 continue
             music_count += 1
-            track = File(os.path.abspath(os.path.join(root, file)))
+            try:
+                track = File(os.path.abspath(os.path.join(root, file)))
+            except EOFError:
+                continue
 
-            if tags['artist'] in track:
-                track_artist = track[tags['artist']][0]
-            else:
-                track_artist = 'Unknown'
-            if tags['album'] in track:
-                track_album = track[tags['album']][0]
-            else:
-                track_album = 'Unknown'
-            if tags['title'] in track:
-                track_title = track.tags[tags['title']][0]
-            else:
-                track_title = str(file.strip(".mp3"))
-            if tags['number'] in track:
-                track_number = track.tags[tags['number']][0]
-            else:
-                track_number = 'Unknown'
-            if tags['year'] in track:
-                track_year = track.tags[tags['year']][0]
-            else:
-                track_year = 'Unknown'
-            if tags['genre'] in track:
-                track_genre = track.tags[tags['genre']][0]
-            else:
-                track_genre = 'Unknown'
-            track_format = str(track).split(".")[-1]
-            date_added = datetime.datetime.today()
-            file_location = os.path.abspath(os.path.join(root, file))
+            track_artist = finders.tag_finder(track, tags['artist'])
+            track_artist = finders.tag_finder(track, tags['artist'])
+            track_album = finders.tag_finder(track,  tags['album'] )
+            track_title = finders.tag_finder(track, tags['title'])
+            if track_title == 'Unkown':
+                track_title = file.split(".")[:-1][0]
+            track_number = finders.tag_finder(track, tags['number'])
+            track_year = finders.tag_finder(track, tags['year'])
+            track_genre = finders.tag_finder(track, tags['genre'])
+            date_added = datetime   .datetime.today()
+            file_location = os.path.abspath(os.path.join(root, file)).decode('ISO-8859-1')
 
             track_hash = hashlib.md5()
-            track_hash.update(track_artist + track_album + track_title)
-            track_hash_string = int(track_hash.hexdigest(), 16)
-            track_id = track_hash_string
+            track_hash.update(track_title+track_artist+str(track_length))
+            track_id = unicode(track_hash.hexdigest())
+
+            database_query = models.Tracks.query.filter_by(id=track_id).first()
+            if database_query != None:
+                print "die hebben we al!"
+                if database_query.file_location == file_location:
+                    continue
+                else:
+                    database_query.file_location = file_location
+                    continue
 
             data_artwork = 'none'
             data_artwork_file = 'none'
             for cover_name in cover_names:
                 for extension in ['jpg', 'jpe', 'jpeg', 'png', 'bmp']:
                     if os.path.exists(os.path.join(root, cover_name+'.'+extension)):
-                        artwork = 'external'
-                        external_artwork = os.path.abspath(os.path.join(root, cover_name+'.'+extension))
+                        external_artwork = True
+                        artwork = unicode(os.path.abspath(os.path.join(root, cover_name+'.'+extension)))
                         data_artwork = "found"
             if data_artwork != "found":
                 try:
-                    artwork = 'external'
+                    external_artwork = True
                     artwork_data = track.tags['APIC:'].data
-                    with open('artwork/' + str(track_id) + mimetypes.guess_extension(track.tags['APIC:'].mime, strict=False), 'wb') as img:
-                        img.write(artwork_data)
-                    external_artwork = 'artwork/' + str(track_id) + mimetypes.guess_extension(track.tags['APIC:'].mime, strict=False)
                 except KeyError:
                     artwork = 'none'
                     external_artwork = False
-
-            tracks_db = models.Tracks(track_id, track_title, track_album, track_artist, track_year, track_genre, track_format, track_length, date_added, file_location, external_artwork, artwork)
-            db.session.add(tracks_db)
+                else:
+                    mimetype = mimetypes.guess_extension(track.tags['APIC:'].mime, strict=False)
+                    if mimetype == None:
+                        mimetype = 'jpg'
+                    with open('artwork/' + str(track_id) + mimetype, 'wb') as img:
+                        img.write(artwork_data)
+                    artwork = unicode('artwork/' + str(track_id) + mimetype)
+            track_db = models.Tracks(track_id, track_title, track_album, track_artist, track_year, track_genre, track_format, track_length, date_added, file_location, external_artwork, artwork)
+            #tracks_db = models.Tracks(track_id, track_title, track_album, track_artist, track_year, track_genre, track_format, track_length, date_added, file_location, external_artwork, artwork)
+            db.session.add(track_db)
+            print time.time() - start
+        db.session.commit()
     db.session.commit()
     return 'Library refreshed, scanned ' + str(music_count) + ' tracks.'
 

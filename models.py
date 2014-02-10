@@ -80,7 +80,7 @@ class Artwork(db.Model):
 class Tracks(db.Model):
     __tablename__ = 'tracks'
 
-    id = db.Column(db.Integer, index = True, primary_key = True)
+    id = db.Column(db.String(128), index = True, primary_key = True)
     title = db.Column(db.String(80))
     album = db.Column(db.Integer, db.ForeignKey(Albums.id))
     artist = db.Column(db.Integer, db.ForeignKey(Artists.id))
@@ -91,13 +91,25 @@ class Tracks(db.Model):
     date_added = db.Column(db.String(32))
     file_location = db.Column(db.String(4096))
     external_artwork = db.Column(db.Boolean)
-    artwork = db.Column(db.Integer, db.ForeignKey(Artwork.id))
+    artwork = db.Column(db.String(4096))
 
-    def __repr__(self):
-        return '<Song %r>' % (self.title)
+    #def __repr__(self):
+        #return '<Song %r>' % (self.title)
 
     def __init__(self, id, title, album, artist, year, genre, format, length, date_added, file_location, external_artwork, artwork):
-        print 'id' + "\t" + title + "\t" + album + "\t" + artist + "\t" + str(length) + "\t" + file_location
+        self.id = id
+        self.title = title
+        self.album = album
+        self.artist = artist
+        self.year = year
+        self.genre = genre
+        self.format = format
+        self.length = length
+        self.date_added = date_added
+        self.file_location = file_location
+        self.external_artwork = external_artwork
+        self.artwork = artwork
+        #print 'id' + "\t" + title + "\t" + album + "\t" + artist + "\t" + str(length) + "\t" + file_location
 
 class Playlist(db.Model):
     __tablename__ = 'playlist'

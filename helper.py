@@ -27,3 +27,12 @@ app = Flask(__name__)
 # set up the config and database
 app.config.from_object('config')
 db = SQLAlchemy(app)
+
+class Finders:
+    def tag_finder(self, track, tag):
+        if tag in track:
+            return unicode(track.tags[tag][0])
+        else:
+            return u"Unkown"
+
+finders = Finders()
