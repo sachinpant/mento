@@ -23,23 +23,18 @@
 import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')
-#import shutil
 import os
-#import trans
-#import time
 import hashlib
 import mutagen
 import mimetypes
 import datetime
 import time
 import models
-#from models import Tracks
-#reload(models)
 from mutagen import File
 from mutagen.mp3 import MP3
 from flask import Flask, request, send_file, jsonify, Response
 from flask.ext.sqlalchemy import SQLAlchemy
-from helper import finders
+from helper import finders, cache
 app = Flask(__name__)
 
 
@@ -48,8 +43,12 @@ app = Flask(__name__)
 app.config.from_object('config')
 db = SQLAlchemy(app)
 
+db.echo = True
+
 # global variables
 music_count = 0
+simple_cache_tracks = [time.time()]
+
 
 # main app
 @app.route('/')
@@ -63,52 +62,62 @@ def show_info():
 
 @app.route('/manage/refresh')
 def refresh_library():
+    global simple_cache_tracks
     music_count = 0
+    cache_hit = 0
     db.create_all()
+    simple_cache_tracks = cache.tracks(simple_cache_tracks)
     mp3_tags = {'artist':'TPE1', 'album':'TALB', 'title':'TIT2', 'number':'TRCK', 'year':'TDOR', 'genre':'TCON'}
     cover_names = ['folder', 'cover', 'album', 'front']
+    start = time.time()
     for root, dirs, files in os.walk(musicfolder):
         for file in files:
-            start = time.time()
             if file.endswith('.mp3'):
                 tags = mp3_tags
-                try:
-                    track_length = int(MP3(os.path.abspath(os.path.join(root, file))).info.length)
-                except EOFError:
-                    continue
-                track_format = u'mp3'
-            else:
+            if not file.endswith('.mp3'):
                 continue
             music_count += 1
+
+            file_location = os.path.abspath(os.path.join(root, file)).decode('ISO-8859-1')
+            track_cache_id = (file_location)
+
+            if track_cache_id in simple_cache_tracks:
+                cache_hit += 1
+                continue
+
             try:
                 track = File(os.path.abspath(os.path.join(root, file)))
             except EOFError:
                 continue
-
             track_artist = finders.tag_finder(track, tags['artist'])
             track_artist = finders.tag_finder(track, tags['artist'])
-            track_album = finders.tag_finder(track,  tags['album'] )
             track_title = finders.tag_finder(track, tags['title'])
             if track_title == 'Unkown':
                 track_title = file.split(".")[:-1][0]
+
+            if file.endswith('.mp3'):
+                track_length = int(MP3(os.path.abspath(os.path.join(root, file))).info.length)
+                track_format = u'mp3'
+
+            track_album = finders.tag_finder(track,  tags['album'] )
             track_number = finders.tag_finder(track, tags['number'])
             track_year = finders.tag_finder(track, tags['year'])
             track_genre = finders.tag_finder(track, tags['genre'])
             date_added = datetime   .datetime.today()
-            file_location = os.path.abspath(os.path.join(root, file)).decode('ISO-8859-1')
 
             track_hash = hashlib.md5()
             track_hash.update(track_title+track_artist+str(track_length))
             track_id = unicode(track_hash.hexdigest())
 
-            database_query = models.Tracks.query.filter_by(id=track_id).first()
-            if database_query != None:
-                print "die hebben we al!"
-                if database_query.file_location == file_location:
-                    continue
-                else:
-                    database_query.file_location = file_location
-                    continue
+            if track_cache_id not in simple_cache_tracks:
+                simple_cache_tracks.append(track_cache_id)
+                database_query = models.Tracks.query.filter_by(id=track_id).first()
+                if database_query != None:
+                    if database_query.file_location == file_location:
+                        continue
+                    else:
+                        database_query.file_location = file_location
+                        continue
 
             data_artwork = 'none'
             data_artwork_file = 'none'
@@ -133,12 +142,10 @@ def refresh_library():
                         img.write(artwork_data)
                     artwork = unicode('artwork/' + str(track_id) + mimetype)
             track_db = models.Tracks(track_id, track_title, track_album, track_artist, track_year, track_genre, track_format, track_length, date_added, file_location, external_artwork, artwork)
-            #tracks_db = models.Tracks(track_id, track_title, track_album, track_artist, track_year, track_genre, track_format, track_length, date_added, file_location, external_artwork, artwork)
             db.session.add(track_db)
-            print time.time() - start
         db.session.commit()
     db.session.commit()
-    return 'Library refreshed, scanned ' + str(music_count) + ' tracks.'
+    return 'Library refreshed, scanned ' + str(music_count) + ' tracks, we hit the cache ' + str(cache_hit) + ' times. It took ' + str(time.time() - start) + ' seconds '
 
 @app.route('/user/library')
 def show_library():
