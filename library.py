@@ -93,7 +93,7 @@ class Update:
 
                 if track_cache_id not in simple_cache_tracks:
                     simple_cache_tracks.append(track_cache_id)
-                    database_query = models.Tracks.query.filter_by(id=track_id).first()
+                    database_query = models.Tracks.query.get(track_id)
                     if database_query != None:
                         if database_query.file_location == file_location:
                             continue
