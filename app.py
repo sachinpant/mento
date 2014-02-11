@@ -50,12 +50,16 @@ def invalid_call():
 @app.route('/manage/info_tracks')
 def show_tracks():
     #TODO this information has to be shown from the database
-    return show.return_all_tracks()
+    for x in show.return_all_tracks():
+        for z in x:
+            return z
 
 @app.route('/manage/info_albums')
 def show_albums():
     #TODO this information has to be shown from the database
-    return show.return_all_albums()
+    for x in show.return_all_albums():
+        for z in x:
+            return z
 
 @app.route('/manage/refresh')
 def refresh_library():

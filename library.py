@@ -57,12 +57,12 @@ class Show:
         list_tracks = []
         for track in all_tracks:
             if track in cache_return_tracks:
-                list_tracks.append(cache_return_tracks[track][0] + cache_return_tracks[track][1] + cache_return_tracks[track][2] + cache_return_tracks[track][3])
+                list_tracks.append([cache_return_tracks[track][0], cache_return_tracks[track][1], cache_return_tracks[track][2], cache_return_tracks[track][3]])
             else:
-                list_tracks.append(track.id + track.title + track.artist + str(track.album))
+                list_tracks.append([track.id, track.title, track.artist, str(track.album)])
                 cache_return_tracks.update({track:[track.id, track.title, track.artist, str(track.album)]})
         print time.time() - start
-        return '<br>'.join(list_tracks)
+        return list_tracks
 
     def return_all_albums(self, use_cache=True):
         """
@@ -81,13 +81,13 @@ class Show:
         list_albums = []
         for album in all_albums:
             if album in cache_return_albums:
-                list_albums.append("%s | %s | %s | %s"%(cache_return_albums[album][0],cache_return_albums[album][1],cache_return_albums[album][2],cache_return_albums[album][3]))
+                list_albums.append([cache_return_albums[album][0],cache_return_albums[album][1],cache_return_albums[album][2],cache_return_albums[album][3]])
             else:
                 values = list(album.tracks.values('artist', 'title'))
-                list_albums.append("%s | %s | %s | %s"%(album.name, str(album.id), values[0][0], values[0][1]))
+                list_albums.append([album.name, str(album.id), values[0][0], values[0][1]])
                 cache_return_albums.update({album:[album.name, str(album.id), values[0][0], values[0][1]]})
         print time.time() - start
-        return '<br>'.join(list_albums)
+        return list_albums
 
 
 class Update:
