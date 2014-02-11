@@ -64,6 +64,15 @@ class Albums(db.Model):
     album_artist = db.Column(db.String(80))
     rating = db.Column(db.Integer)
     genre = db.Column(db.String(80))
+    tracks = db.relationship('Tracks', backref='album', lazy='dynamic')
+
+    def __init__(self, name, year, type, album_artist, rating, genre):
+        self.name = name
+        self.year = year
+        self.type = type
+        self.album_artist = album_artist
+        self.rating = rating
+        self.genre = genre
 
     def __repr__(self):
         return '<Album %r>' % (self.name)
@@ -82,7 +91,7 @@ class Tracks(db.Model):
 
     id = db.Column(db.String(128), index = True, primary_key = True)
     title = db.Column(db.String(80))
-    album = db.Column(db.Integer, db.ForeignKey(Albums.id))
+    album_id = db.Column(db.Integer, db.ForeignKey(Albums.id))
     artist = db.Column(db.Integer, db.ForeignKey(Artists.id))
     year = db.Column(db.Integer)
     genre = db.Column(db.String(80))

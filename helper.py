@@ -42,8 +42,13 @@ class Cache:
         if currunt_cache[0] - time.time() > 86400:
             return [time.time()]
         else:
-            print "cache is good!"
+            #print "cache is good!"
             return currunt_cache
+    def read_albums(self, current_cache):
+        if current_cache['created'] - time.time() > 360:
+            return {'created':time.time()}
+        else:
+            return current_cache
 
 class SwitchCase:
     def upper(self, a):

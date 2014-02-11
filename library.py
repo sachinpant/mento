@@ -31,24 +31,81 @@ from mutagen import File
 from mutagen.mp3 import MP3
 from flask.ext.sqlalchemy import SQLAlchemy
 from helper import db, app, musicfolder, switchcase, finders, cache
+import query
 
 # Global variables
-music_count = 0
-simple_cache_tracks = [time.time()]
+
+
+class Show:
+    """
+    This class is a proof of concept, DO NOT USE!
+    """
+    def return_all_tracks(self, use_cache=True):
+        """
+        Cache seems useless, but still fun! And it still makes it 50 times faster...
+        """
+        if use_cache == False:
+            cache_return_tracks = {'created':time.time()}
+        elif use_cache == True:
+            try:
+                cache_return_tracks = cache.read_albums(cache_return_tracks)
+            except NameError:
+                cache_return_tracks = {'created':time.time()}
+        global cache_return_tracks
+        start = time.time()
+        all_tracks = models.Tracks.query.all()
+        list_tracks = []
+        for track in all_tracks:
+            if track in cache_return_tracks:
+                list_tracks.append(cache_return_tracks[track][0] + cache_return_tracks[track][1] + cache_return_tracks[track][2] + cache_return_tracks[track][3])
+            else:
+                list_tracks.append(track.id + track.title + track.artist + str(track.album))
+                cache_return_tracks.update({track:[track.id, track.title, track.artist, str(track.album)]})
+        print time.time() - start
+        return '<br>'.join(list_tracks)
+
+    def return_all_albums(self, use_cache=True):
+        """
+        Cache is useful here: from 2 seconds to 0.02 seconds
+        """
+        if use_cache == False:
+            cache_return_albums = {'created':time.time()}
+        elif use_cache == True:
+            try:
+                cache_return_albums = cache.read_albums(cache_return_albums)
+            except NameError:
+                cache_return_albums = {'created':time.time()}
+        global cache_return_albums
+        start = time.time()
+        all_albums = models.Albums.query.all()
+        list_albums = []
+        for album in all_albums:
+            if album in cache_return_albums:
+                list_albums.append("%s | %s | %s | %s"%(cache_return_albums[album][0],cache_return_albums[album][1],cache_return_albums[album][2],cache_return_albums[album][3]))
+            else:
+                values = list(album.tracks.values('artist', 'title'))
+                list_albums.append("%s | %s | %s | %s"%(album.name, str(album.id), values[0][0], values[0][1]))
+                cache_return_albums.update({album:[album.name, str(album.id), values[0][0], values[0][1]]})
+        print time.time() - start
+        return '<br>'.join(list_albums)
+
 
 class Update:
     def full_rescan(self, use_cache=True):
+        if use_cache == False:
+            simple_cache_tracks = [time.time()]
+        elif use_cache == True:
+            try:
+                simple_cache_tracks = cache.tracks(simple_cache_tracks)
+            except NameError:
+                simple_cache_tracks = [time.time()]
         global simple_cache_tracks
         music_count = 0
         cache_hit = 0
         tracks_added = 0
         path_updated = 0
         db.create_all()
-        if use_cache == False:
-            simple_cache_tracks = [time.time()]
-        elif use_cache == True:
-            simple_cache_tracks = cache.tracks(simple_cache_tracks)
-        mp3_tags = {'artist':'TPE1', 'album':'TALB', 'title':'TIT2', 'number':'TRCK', 'year':'TDOR', 'genre':'TCON'}
+        mp3_tags = {'artist':'TPE1', 'album':'TALB', 'title':'TIT2', 'number':'TRCK', 'year':'TDOR', 'genre':'TCON', 'album_artist':'TPE2'}
         cover_names = ['folder', 'cover', 'album', 'front']
         start = time.time()
         for root, dirs, files in os.walk(musicfolder):
@@ -81,7 +138,6 @@ class Update:
                     track_length = int(MP3(os.path.abspath(os.path.join(root, file))).info.length)
                     track_format = u'mp3'
 
-                track_album = finders.tag_finder(track,  tags['album'] )
                 track_number = finders.tag_finder(track, tags['number'])
                 track_year = finders.tag_finder(track, tags['year'])
                 track_genre = finders.tag_finder(track, tags['genre'])
@@ -90,6 +146,8 @@ class Update:
                 track_hash = hashlib.md5()
                 track_hash.update(track_title+track_artist+str(track_length))
                 track_id = unicode(track_hash.hexdigest())
+
+                track_album = query.write.new_album(track, tags)
 
                 if track_cache_id not in simple_cache_tracks:
                     simple_cache_tracks.append(track_cache_id)
@@ -137,11 +195,32 @@ class Update:
         return 'Library refreshed, scanned ' + str(music_count) + ' tracks, we hit the cache ' + str(cache_hit) + ' times. It took ' + str(time.time() - start) + ' seconds. In total ' + str(tracks_added) + ' tracks were added. We updated the path for ' + str(path_updated) + ' file(s)'
 
 class Remove:
+    def remove_albums(self):
+        all_albums = models.Albums.query.all()
+        removed = 0
+        for album in all_albums:
+            db.session.delete(album)
+            removed += 1
+        db.session.commit()
+        return "Removed %s albums" %(str(removed))
+
+
+    def remove_tracks(self):
+        all_tracks = models.Tracks.query.all()
+        removed = 0
+        for track in all_tracks:
+            db.session.delete(track)
+            removed += 1
+        db.session.commit()
+        return "Removed %s tracks" %(str(removed))
+
+
     def delete_missing(self):
         all_tracks = models.Tracks.query.all()
         good_paths = 0
         bad_paths = 0
         for track in all_tracks:
+            print track.album
             if os.path.exists(track.file_location.encode('ISO-8859-1')) == True:
                 good_paths += 1
             else:
@@ -151,5 +230,6 @@ class Remove:
         db.session.commit()
         return "Of a total of %s tracks %s had a bad path, they have been deleted" %(str(good_paths + bad_paths), bad_paths)
 
+show = Show()
 update = Update()
 remove = Remove()

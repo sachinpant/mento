@@ -35,7 +35,7 @@ from mutagen.mp3 import MP3
 from flask import Flask, request, send_file, jsonify, Response
 from flask.ext.sqlalchemy import SQLAlchemy
 from helper import finders, cache
-from library import update, remove
+from library import update, remove, show
 app = Flask(__name__)
 
 # set up the config and database
@@ -47,10 +47,15 @@ db = SQLAlchemy(app)
 def invalid_call():
     return 'Mento has to be accessed using REST API calls.'
 
-@app.route('/manage/info')
-def show_info():
+@app.route('/manage/info_tracks')
+def show_tracks():
     #TODO this information has to be shown from the database
-    print 'Stubbed.'
+    return show.return_all_tracks()
+
+@app.route('/manage/info_albums')
+def show_albums():
+    #TODO this information has to be shown from the database
+    return show.return_all_albums()
 
 @app.route('/manage/refresh')
 def refresh_library():
@@ -59,6 +64,14 @@ def refresh_library():
 @app.route('/manage/remove_missing')
 def remove_missing():
     return remove.delete_missing()
+
+@app.route('/manage/remove_tracks')
+def remove_tracks():
+    return remove.remove_tracks()
+
+@app.route('/manage/remove_albums')
+def remove_albums():
+    return remove.remove_albums()
 
 @app.route('/user/library')
 def show_library():
