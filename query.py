@@ -74,7 +74,7 @@ class Write:
             db.session.commit()
             return album_db
         else:
-            print "read %s" %(album_in_database)
+            #print "read %s" %(album_in_database)
             return album_in_database
 
 

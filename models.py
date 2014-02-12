@@ -54,6 +54,7 @@ class Artists(db.Model):
     def __repr__(self):
         return '<Artist %r>' % (self.name)
 
+
 class Albums(db.Model):
     __tablename__ = 'albums'
 
@@ -77,6 +78,7 @@ class Albums(db.Model):
     def __repr__(self):
         return '<Album %r>' % (self.name)
 
+
 class Artwork(db.Model):
     __tablename__ = 'artwork'
 
@@ -85,6 +87,7 @@ class Artwork(db.Model):
 
     def __repr__(self):
         return '<Artwork %r>' % (self.path)
+
 
 class Tracks(db.Model):
     __tablename__ = 'tracks'

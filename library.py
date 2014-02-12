@@ -44,6 +44,7 @@ class Show:
         """
         Cache seems useless, but still fun! And it still makes it 50 times faster...
         """
+        global cache_return_tracks
         if use_cache == False:
             cache_return_tracks = {'created':time.time()}
         elif use_cache == True:
@@ -51,7 +52,6 @@ class Show:
                 cache_return_tracks = cache.read_albums(cache_return_tracks)
             except NameError:
                 cache_return_tracks = {'created':time.time()}
-        global cache_return_tracks
         start = time.time()
         all_tracks = models.Tracks.query.all()
         list_tracks = []
@@ -143,11 +143,11 @@ class Update:
                 track_genre = finders.tag_finder(track, tags['genre'])
                 date_added = datetime.datetime.today()
 
-                track_hash = hashlib.md5()
-                track_hash.update(track_title+track_artist+str(track_length))
-                track_id = unicode(track_hash.hexdigest())
-
                 track_album = query.write.new_album(track, tags)
+
+                track_hash = hashlib.md5()
+                track_hash.update(track_title+track_artist+str(track_length)+str(track_album))
+                track_id = unicode(track_hash.hexdigest())
 
                 if track_cache_id not in simple_cache_tracks:
                     simple_cache_tracks.append(track_cache_id)
@@ -156,10 +156,18 @@ class Update:
                         if database_query.file_location == file_location:
                             continue
                         else:
-                            simple_cache_tracks.remove(database_query.file_location)
-                            path_updated += 1
-                            database_query.file_location = file_location
-                            continue
+                            try:
+                                simple_cache_tracks.remove(database_query.file_location)
+                            except ValueError:
+                                pass
+                            if track_id == database_query.id:
+                                path_updated += 1
+                                print file_location
+                                print database_query.file_location
+                                database_query.file_location = file_location
+                                continue
+                            else:
+                                db.session.flush()
 
                 data_artwork = 'none'
                 data_artwork_file = 'none'

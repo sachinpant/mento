@@ -4,4 +4,4 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'app.db')
 SQLALCHEMY_MIGRATE_REPO = os.path.join(basedir, 'db_repository')
 
-MUSICFOLDER = '/home/thomas/Music/Top 2000 [2012]'
+MUSICFOLDER = '/home/thomas/Music/'
